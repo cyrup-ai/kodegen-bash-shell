@@ -7,7 +7,7 @@
 use crossterm::ExecutableCommand;
 use std::io::Write;
 
-use crate::{ReadResult, ShellError};
+use crate::interactive::{ReadResult, ShellError};
 
 const BACKSPACE: char = 8u8 as char;
 

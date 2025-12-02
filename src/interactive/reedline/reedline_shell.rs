@@ -21,7 +21,7 @@ impl ReedlineShell {
     /// # Arguments
     ///
     /// * `options` - Options for creating the interactive shell.
-    pub async fn new(mut options: crate::Options) -> Result<Self, ShellError> {
+    pub async fn new(mut options: crate::interactive::Options) -> Result<Self, ShellError> {
         // Set up key bindings.
         let key_bindings = compose_key_bindings(COMPLETION_MENU_NAME);
 

@@ -19,7 +19,7 @@ impl BasicShell {
     /// # Arguments
     ///
     /// * `options` - Options for creating the interactive shell.
-    pub async fn new(options: crate::Options) -> Result<Self, ShellError> {
+    pub async fn new(options: crate::interactive::Options) -> Result<Self, ShellError> {
         let shell = crate::core::Shell::new(options.shell).await?;
         Ok(Self { shell })
     }

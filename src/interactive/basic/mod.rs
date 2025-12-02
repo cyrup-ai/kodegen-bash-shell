@@ -4,7 +4,7 @@ mod term_line_reader;
 
 pub use basic_shell::BasicShell;
 
-use crate::{ReadResult, ShellError};
+use crate::interactive::{ReadResult, ShellError};
 
 pub(crate) trait LineReader {
     fn read_line(

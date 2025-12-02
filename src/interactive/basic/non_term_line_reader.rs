@@ -1,4 +1,4 @@
-use crate::{ReadResult, ShellError};
+use crate::interactive::{ReadResult, ShellError};
 
 pub(crate) struct NonTermLineReader;
 
@@ -11,9 +11,9 @@ impl super::LineReader for NonTermLineReader {
             usize,
         ) -> Result<
             crate::core::completion::Completions,
-            crate::ShellError,
+            crate::interactive::ShellError,
         >,
-    ) -> Result<crate::ReadResult, crate::ShellError> {
+    ) -> Result<crate::interactive::ReadResult, crate::interactive::ShellError> {
         let mut input = String::new();
         let bytes_read = std::io::stdin()
             .read_line(&mut input)
