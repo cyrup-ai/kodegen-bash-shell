@@ -11,7 +11,7 @@
 //! #[tokio::main]
 //! async fn main() -> anyhow::Result<()> {
 //!     let mut shell = Shell::builder().build().await?;
-//!     let result = shell.run_string("echo 'Hello!'", &shell.default_exec_params()).await?;
+//!     let result = shell.exec("echo 'Hello!'", &shell.default_exec_params()).await?;
 //!     Ok(())
 //! }
 //! ```
@@ -41,7 +41,7 @@ pub mod prelude {
         CommandArg, CreateOptions, Error, ErrorKind, ExecutionContext, ExecutionControlFlow,
         ExecutionExitCode, ExecutionParameters, ExecutionResult, ExecutionSpawnResult,
         ProcessGroupPolicy, Shell, ShellBuilder, ShellBuilderState, ShellFd, ShellValue,
-        ShellVariable, BuiltinError,
+        ShellVariable, BuiltinError, OutputStreamType, StreamingOutput,
     };
 
     // Builtin command infrastructure
@@ -81,7 +81,7 @@ pub use core::{
     BuiltinError, CommandArg, CreateOptions, Error, ErrorKind, ExecutionContext,
     ExecutionControlFlow, ExecutionExitCode, ExecutionParameters, ExecutionResult,
     ExecutionSpawnResult, ProcessGroupPolicy, Shell, ShellBuilder, ShellBuilderState, ShellFd,
-    ShellValue, ShellVariable,
+    ShellValue, ShellVariable, OutputStreamType, StreamingOutput,
 };
 
 // Re-export openfiles module for file descriptor manipulation

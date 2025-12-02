@@ -852,7 +852,7 @@ impl Shell {
     ///
     /// * `command` - The command to execute.
     /// * `params` - Execution parameters.
-    pub async fn run_string<S: Into<String>>(
+    pub async fn exec<S: Into<String>>(
         &mut self,
         command: S,
         params: &ExecutionParameters,
@@ -868,6 +868,104 @@ impl Shell {
         };
         self.run_parsed_result(parse_result, &source_info, params)
             .await
+    }
+
+    /// Executes command with streaming I/O.
+    ///
+    /// Returns:
+    /// - `impl Stream<Item = StreamingOutput>` - stdout/stderr chunks as they arrive
+    /// - `Sender<Vec<u8>>` - channel to write to stdin (drop to close stdin)
+    ///
+    /// Cancellable via CancellationToken in ExecutionParameters.
+    pub fn stream<S: Into<String>>(
+        &mut self,
+        command: S,
+        params: &ExecutionParameters,
+    ) -> Result<(
+        tokio_stream::wrappers::ReceiverStream<super::results::StreamingOutput>,
+        tokio::sync::mpsc::Sender<Vec<u8>>,
+    ), error::Error> {
+        use std::io::{Read, Write};
+        use super::results::StreamingOutput;
+
+        let command = command.into();
+
+        // Parse upfront - fail fast on syntax errors
+        let program = self.parse_string(&command).map_err(|e| {
+            error::Error::from(error::ErrorKind::ParseError(
+                e,
+                crate::parser::SourceInfo { source: String::from("streaming") },
+            ))
+        })?;
+
+        // Create pipes for stdin, stdout, stderr
+        let (stdin_reader, stdin_writer) =
+            std::io::pipe().map_err(|e| error::Error::from(error::ErrorKind::IoError(e)))?;
+        let (stdout_reader, stdout_writer) =
+            std::io::pipe().map_err(|e| error::Error::from(error::ErrorKind::IoError(e)))?;
+        let (stderr_reader, stderr_writer) =
+            std::io::pipe().map_err(|e| error::Error::from(error::ErrorKind::IoError(e)))?;
+
+        // Channel for output chunks
+        let (output_tx, output_rx) = tokio::sync::mpsc::channel::<StreamingOutput>(64);
+
+        // Channel for stdin input
+        let (stdin_tx, mut stdin_rx) = tokio::sync::mpsc::channel::<Vec<u8>>(64);
+
+        // Subshell with pipes attached
+        let mut subshell = self.clone();
+        let mut exec_params = params.clone();
+        exec_params.set_fd(openfiles::OpenFiles::STDIN_FD, openfiles::OpenFile::PipeReader(stdin_reader));
+        exec_params.set_fd(openfiles::OpenFiles::STDOUT_FD, openfiles::OpenFile::PipeWriter(stdout_writer));
+        exec_params.set_fd(openfiles::OpenFiles::STDERR_FD, openfiles::OpenFile::PipeWriter(stderr_writer));
+
+        // Spawn execution (pipe writers drop when done → EOF to readers)
+        tokio::spawn(async move {
+            let _ = subshell.run_program(program, &exec_params).await;
+            // exec_params dropped here, pipe writers closed
+        });
+
+        // Stdin writer task - forwards channel data to pipe
+        tokio::task::spawn_blocking(move || {
+            let mut w = stdin_writer;
+            while let Some(data) = stdin_rx.blocking_recv() {
+                if w.write_all(&data).is_err() {
+                    break;
+                }
+            }
+            // stdin_writer dropped here, signals EOF to process
+        });
+
+        // Stdout reader
+        let tx1 = output_tx.clone();
+        tokio::task::spawn_blocking(move || {
+            let mut buf = [0u8; 4096];
+            let mut r = stdout_reader;
+            loop {
+                match r.read(&mut buf) {
+                    Ok(0) => break,
+                    Ok(n) => { let _ = tx1.blocking_send(StreamingOutput::stdout(buf[..n].to_vec())); }
+                    Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
+                    Err(_) => break,
+                }
+            }
+        });
+
+        // Stderr reader
+        tokio::task::spawn_blocking(move || {
+            let mut buf = [0u8; 4096];
+            let mut r = stderr_reader;
+            loop {
+                match r.read(&mut buf) {
+                    Ok(0) => break,
+                    Ok(n) => { let _ = output_tx.blocking_send(StreamingOutput::stderr(buf[..n].to_vec())); }
+                    Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
+                    Err(_) => break,
+                }
+            }
+        });
+
+        Ok((tokio_stream::wrappers::ReceiverStream::new(output_rx), stdin_tx))
     }
 
     /// Parses the given reader as a shell program, returning the resulting Abstract Syntax Tree
@@ -976,7 +1074,7 @@ impl Shell {
         let orig_last_exit_status = self.last_exit_status;
         self.traps.handler_depth += 1;
 
-        let result = self.run_string(handler, &params).await;
+        let result = self.exec(handler, &params).await;
 
         self.traps.handler_depth -= 1;
         self.last_exit_status = orig_last_exit_status;

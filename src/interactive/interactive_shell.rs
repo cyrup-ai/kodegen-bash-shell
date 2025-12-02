@@ -215,7 +215,7 @@ pub trait InteractiveShell: Send {
 
             // Execute the command.
             let params = shell_mut.as_mut().default_exec_params();
-            let result = match shell_mut.as_mut().run_string(read_result, &params).await {
+            let result = match shell_mut.as_mut().exec(read_result, &params).await {
                 Ok(result) => Ok(InteractiveExecutionResult::Executed(result)),
                 Err(e) => Ok(InteractiveExecutionResult::Failed(e)),
             };
@@ -272,7 +272,7 @@ async fn run_pre_prompt_command(
 
     // Run the command.
     let params = shell.default_exec_params();
-    shell.run_string(prompt_cmd, &params).await?;
+    shell.exec(prompt_cmd, &params).await?;
 
     // Restore the last exit status.
     shell.last_pipeline_statuses = prev_last_pipeline_statuses;

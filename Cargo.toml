@@ -181,6 +181,9 @@ nu-ansi-term = "0.50.3"
 # For cancellation token support
 tokio-util = "0.7"
 
+# For streaming execution
+tokio-stream = "0.1"
+
 [target.'cfg(target_family = "wasm")'.dependencies]
 tokio = { version = "1.48.0", features = ["io-util", "macros", "rt", "sync"] }
 

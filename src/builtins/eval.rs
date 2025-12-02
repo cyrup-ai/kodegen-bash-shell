@@ -27,7 +27,7 @@ impl builtins::Command for EvalCommand {
             // exit, break, continue) should propagate.
             context
                 .shell
-                .run_string(args_concatenated, &context.params)
+                .exec(args_concatenated, &context.params)
                 .await
         } else {
             Ok(ExecutionResult::success())

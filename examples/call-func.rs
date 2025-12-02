@@ -13,7 +13,7 @@ async fn define_func(shell: &mut Shell) -> Result<()> {
 "#;
 
     let result = shell
-        .run_string(script, &shell.default_exec_params())
+        .exec(script, &shell.default_exec_params())
         .await?;
 
     eprintln!("[Function definition result: {}]", result.is_success());

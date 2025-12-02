@@ -275,3 +275,43 @@ pub enum ExecutionWaitResult {
     /// Indicates that the execution was cancelled via CancellationToken.
     Cancelled(processes::ChildProcess),
 }
+
+// ============================================================================
+// Streaming Output Types
+// ============================================================================
+
+/// Identifies the output stream
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum OutputStreamType {
+    Stdout,
+    Stderr,
+}
+
+/// A chunk of output from streaming execution
+#[derive(Clone, Debug)]
+pub struct StreamingOutput {
+    pub stream: OutputStreamType,
+    pub data: Vec<u8>,
+}
+
+impl StreamingOutput {
+    pub fn stdout(data: Vec<u8>) -> Self {
+        Self { stream: OutputStreamType::Stdout, data }
+    }
+
+    pub fn stderr(data: Vec<u8>) -> Self {
+        Self { stream: OutputStreamType::Stderr, data }
+    }
+
+    pub fn is_stdout(&self) -> bool {
+        matches!(self.stream, OutputStreamType::Stdout)
+    }
+
+    pub fn is_stderr(&self) -> bool {
+        matches!(self.stream, OutputStreamType::Stderr)
+    }
+
+    pub fn as_str_lossy(&self) -> std::borrow::Cow<'_, str> {
+        String::from_utf8_lossy(&self.data)
+    }
+}

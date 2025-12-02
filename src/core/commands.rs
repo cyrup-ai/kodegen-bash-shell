@@ -260,7 +260,7 @@ async fn invoke_debug_trap_handler_if_registered(
             // TODO: Discard result?
             let _ = context
                 .shell
-                .run_string(debug_trap_handler, &handler_params)
+                .exec(debug_trap_handler, &handler_params)
                 .await;
 
             context.shell.traps.handler_depth -= 1;

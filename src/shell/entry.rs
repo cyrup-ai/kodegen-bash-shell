@@ -212,7 +212,7 @@ async fn run_in_shell(
         shell
             .shell_mut()
             .as_mut()
-            .run_string(command, &params)
+            .exec(command, &params)
             .await?;
 
     // If -s was provided, then read commands from stdin. If there was a script (and optionally

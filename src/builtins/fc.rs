@@ -145,7 +145,7 @@ impl FcCommand {
         // Execute the command
         let result = context
             .shell
-            .run_string(final_cmd.clone(), &context.params)
+            .exec(final_cmd.clone(), &context.params)
             .await?;
 
         // Add the executed command to history.
