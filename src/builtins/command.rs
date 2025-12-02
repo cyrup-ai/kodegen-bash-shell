@@ -155,7 +155,7 @@ impl CommandCommand {
         {
             ExecutionSpawnResult::StartedProcess(mut child) => {
                 // TODO: jobs: review this logic
-                let wait_result = child.wait().await?;
+                let wait_result = child.wait(None).await?;
                 Ok(ExecutionResult::from(wait_result))
             }
             ExecutionSpawnResult::Completed(result) => Ok(result),

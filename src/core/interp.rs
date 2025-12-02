@@ -17,12 +17,14 @@ use super::variables::{
     ArrayLiteral, ShellValue, ShellValueLiteral, ShellValueUnsetType, ShellVariable,
 };
 use super::{ShellFd, error, expansion, extendedtests, jobs, openfiles, processes, sys, timing};
+use tokio_util::sync::CancellationToken;
 
 impl From<processes::ProcessWaitResult> for results::ExecutionResult {
     fn from(wait_result: processes::ProcessWaitResult) -> Self {
         match wait_result {
             processes::ProcessWaitResult::Completed(output) => output.into(),
             processes::ProcessWaitResult::Stopped => Self::stopped(),
+            processes::ProcessWaitResult::Cancelled => Self::new(130),
         }
     }
 }
@@ -63,6 +65,8 @@ pub struct ExecutionParameters {
     open_files: openfiles::OpenFiles,
     /// Policy for how to manage spawned external processes.
     pub process_group_policy: ProcessGroupPolicy,
+    /// Optional cancellation token for interrupting execution.
+    cancellation_token: Option<CancellationToken>,
 }
 
 impl ExecutionParameters {
@@ -168,6 +172,16 @@ impl ExecutionParameters {
             .collect();
 
         all_fds.into_iter()
+    }
+
+    /// Set the cancellation token for this execution context.
+    pub fn set_cancellation_token(&mut self, token: CancellationToken) {
+        self.cancellation_token = Some(token);
+    }
+
+    /// Get a reference to the cancellation token, if set.
+    pub fn cancellation_token(&self) -> Option<&CancellationToken> {
+        self.cancellation_token.as_ref()
     }
 }
 
@@ -476,7 +490,7 @@ async fn wait_for_pipeline_processes_and_update_status(
     shell.last_pipeline_statuses.clear();
 
     while let Some(child) = process_spawn_results.pop_front() {
-        match child.wait(!stopped_children.is_empty()).await? {
+        match child.wait(!stopped_children.is_empty(), params.cancellation_token()).await? {
             ExecutionWaitResult::Completed(current_result) => {
                 result = current_result;
                 *shell.last_exit_status_mut() = result.exit_code.into();
@@ -484,6 +498,14 @@ async fn wait_for_pipeline_processes_and_update_status(
             }
             ExecutionWaitResult::Stopped(child) => {
                 result = ExecutionResult::stopped();
+                *shell.last_exit_status_mut() = result.exit_code.into();
+                shell.last_pipeline_statuses.push(result.exit_code.into());
+
+                stopped_children.push(jobs::JobTask::External(child));
+            }
+            ExecutionWaitResult::Cancelled(child) => {
+                // Exit code 130 = 128 + SIGINT (signal 2)
+                result = ExecutionResult::new(130);
                 *shell.last_exit_status_mut() = result.exit_code.into();
                 shell.last_pipeline_statuses.push(result.exit_code.into());
 

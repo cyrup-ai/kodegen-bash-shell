@@ -4,6 +4,7 @@ use std::collections::VecDeque;
 use std::fmt::Display;
 
 use futures::FutureExt;
+use tokio_util::sync::CancellationToken;
 
 use crate::ExecutionResult;
 use super::error;
@@ -40,15 +41,24 @@ pub enum JobTaskWaitResult {
 
 impl JobTask {
     /// Waits for the task to complete. Returns the result of the wait.
-    pub async fn wait(&mut self) -> Result<JobTaskWaitResult, error::Error> {
+    ///
+    /// # Arguments
+    /// * `cancellation_token` - Optional token to cancel the wait operation.
+    pub async fn wait(
+        &mut self,
+        cancellation_token: Option<&CancellationToken>,
+    ) -> Result<JobTaskWaitResult, error::Error> {
         match self {
             Self::External(process) => {
-                let wait_result = process.wait().await?;
+                let wait_result = process.wait(cancellation_token).await?;
                 match wait_result {
                     processes::ProcessWaitResult::Completed(output) => {
                         Ok(JobTaskWaitResult::Completed(output.into()))
                     }
                     processes::ProcessWaitResult::Stopped => Ok(JobTaskWaitResult::Stopped),
+                    processes::ProcessWaitResult::Cancelled => {
+                        Ok(JobTaskWaitResult::Completed(ExecutionResult::new(130)))
+                    }
                 }
             }
             Self::Internal(handle) => Ok(JobTaskWaitResult::Completed(handle.await??)),
@@ -358,7 +368,8 @@ impl Job {
         let mut result = ExecutionResult::success();
 
         while let Some(task) = self.tasks.back_mut() {
-            match task.wait().await? {
+            // Jobs don't have access to execution context, pass None for token
+            match task.wait(None).await? {
                 JobTaskWaitResult::Completed(execution_result) => {
                     result = execution_result;
                     self.tasks.pop_back();

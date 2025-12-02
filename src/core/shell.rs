@@ -271,7 +271,7 @@ pub struct CreateOptions {
     /// Enabled shopt options.
     #[builder(field)]
     pub enabled_shopt_options: Vec<String>,
-    /// Registered builtins.
+    /// Registered builtins. Defaults to full bash-compatible builtins.
     #[builder(field)]
     pub builtins: HashMap<String, builtins::Registration>,
     /// Disallow overwriting regular files via output redirection.
@@ -341,9 +341,12 @@ pub struct CreateOptions {
 }
 
 impl Shell {
-    /// Create an instance of [Shell] using the builder syntax
+    /// Create an instance of [Shell] using the builder syntax.
+    /// By default, includes the full set of bash-compatible builtins.
     pub fn builder() -> ShellBuilder<shell_builder::Empty> {
-        CreateOptions::builder()
+        CreateOptions::builder().builtins(crate::builtins::default_builtins(
+            crate::builtins::BuiltinSet::BashMode,
+        ))
     }
 
     /// Returns a new shell instance created with the given options.

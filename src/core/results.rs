@@ -1,5 +1,7 @@
 //! Encapsulation of execution results.
 
+use tokio_util::sync::CancellationToken;
+
 use super::{error, processes};
 
 /// Represents the result of executing a command or similar item.
@@ -84,6 +86,11 @@ impl ExecutionResult {
             self.next_control_flow,
             ExecutionControlFlow::ReturnFromFunctionOrScript | ExecutionControlFlow::ExitShell
         )
+    }
+
+    /// Returns whether the execution was cancelled (exit code 130).
+    pub fn is_cancelled(&self) -> bool {
+        matches!(self.exit_code, ExecutionExitCode::Interrupted)
     }
 }
 
@@ -226,13 +233,18 @@ impl ExecutionSpawnResult {
     /// # Arguments
     ///
     /// * `no_wait` - If true, do not wait for the command to complete; return immediately.
-    pub async fn wait(self, no_wait: bool) -> Result<ExecutionWaitResult, error::Error> {
+    /// * `cancellation_token` - Optional token to cancel the wait operation.
+    pub async fn wait(
+        self,
+        no_wait: bool,
+        cancellation_token: Option<&CancellationToken>,
+    ) -> Result<ExecutionWaitResult, error::Error> {
         match self {
             Self::StartedProcess(mut child) => {
                 let process_wait_result = if !no_wait {
                     // Wait for the process to exit or for a relevant signal, whichever happens
                     // first.
-                    child.wait().await?
+                    child.wait(cancellation_token).await?
                 } else {
                     processes::ProcessWaitResult::Stopped
                 };
@@ -242,6 +254,9 @@ impl ExecutionSpawnResult {
                         ExecutionWaitResult::Completed(ExecutionResult::from(output))
                     }
                     processes::ProcessWaitResult::Stopped => ExecutionWaitResult::Stopped(child),
+                    processes::ProcessWaitResult::Cancelled => {
+                        ExecutionWaitResult::Cancelled(child)
+                    }
                 };
 
                 Ok(wait_result)
@@ -257,4 +272,6 @@ pub enum ExecutionWaitResult {
     Completed(ExecutionResult),
     /// Indicates that the execution was stopped.
     Stopped(processes::ChildProcess),
+    /// Indicates that the execution was cancelled via CancellationToken.
+    Cancelled(processes::ChildProcess),
 }

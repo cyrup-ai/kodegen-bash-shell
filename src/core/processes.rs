@@ -1,6 +1,7 @@
 //! Process management
 
 use futures::FutureExt;
+use tokio_util::sync::CancellationToken;
 
 use super::{error, sys};
 
@@ -32,7 +33,13 @@ impl ChildProcess {
     }
 
     /// Waits for the process to exit.
-    pub async fn wait(&mut self) -> Result<ProcessWaitResult, error::Error> {
+    ///
+    /// # Arguments
+    /// * `cancellation_token` - Optional token to cancel the wait operation.
+    pub async fn wait(
+        &mut self,
+        cancellation_token: Option<&CancellationToken>,
+    ) -> Result<ProcessWaitResult, error::Error> {
         #[allow(unused_mut, reason = "only mutated on some platforms")]
         let mut sigtstp = sys::signal::tstp_signal_listener()?;
         #[allow(unused_mut, reason = "only mutated on some platforms")]
@@ -41,6 +48,25 @@ impl ChildProcess {
         #[allow(clippy::ignored_unit_patterns)]
         loop {
             tokio::select! {
+                biased;  // Check cancellation first for responsiveness
+
+                // Cancellation token check - fires when token is cancelled
+                _ = async {
+                    if let Some(token) = cancellation_token {
+                        token.cancelled().await
+                    } else {
+                        std::future::pending::<()>().await
+                    }
+                } => {
+                    // Kill the child process with SIGINT
+                    if let Some(pid) = self.pid {
+                        let _ = sys::signal::kill_process(
+                            pid,
+                            super::traps::TrapSignal::Signal(sys::signal::Signal::SIGINT),
+                        );
+                    }
+                    break Ok(ProcessWaitResult::Cancelled);
+                },
                 output = &mut self.exec_future => {
                     break Ok(ProcessWaitResult::Completed(output?))
                 },
@@ -75,4 +101,6 @@ pub enum ProcessWaitResult {
     Completed(std::process::Output),
     /// The process stopped and has not yet completed.
     Stopped,
+    /// Process was cancelled via CancellationToken.
+    Cancelled,
 }
