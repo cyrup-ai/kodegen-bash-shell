@@ -312,8 +312,8 @@ pub async fn execute(
 
     // Assuming we weren't requested not to do so, check if it's the name of
     // a shell function.
-    if use_functions {
-        if let Some(func_reg) = cmd_context
+    if use_functions
+        && let Some(func_reg) = cmd_context
             .shell
             .funcs()
             .get(cmd_context.command_name.as_str())
@@ -322,14 +322,12 @@ pub async fn execute(
             return invoke_shell_function(func_reg.definition.clone(), cmd_context, &args[1..])
                 .await;
         }
-    }
 
     // If we found a (non-special) builtin and it's not disabled, then invoke it.
-    if let Some(builtin) = builtin {
-        if !builtin.disabled {
+    if let Some(builtin) = builtin
+        && !builtin.disabled {
             return execute_builtin_command(&builtin, cmd_context, args).await;
         }
-    }
 
     // We still haven't found a command to invoke. We'll need to look for an external command.
     if !cmd_context.command_name.contains(std::path::MAIN_SEPARATOR) {
@@ -590,13 +588,12 @@ async fn run_substitution_command(
     // Check for a command that is only an input redirection ("< file").
     // If detected, emulate `cat file` to stdout and return immediately.
     // If we failed to parse, then we'll fall below and handle it there.
-    if let Ok(program) = &parse_result {
-        if let Some(redir) = try_unwrap_bare_input_redir_program(program) {
+    if let Ok(program) = &parse_result
+        && let Some(redir) = try_unwrap_bare_input_redir_program(program) {
             interp::setup_redirect(&mut shell, &mut params, redir).await?;
             std::io::copy(&mut params.stdin(&shell), &mut params.stdout(&shell))?;
             return Ok(ExecutionResult::new(0));
         }
-    }
 
     let source_info = crate::parser::SourceInfo {
         source: String::from("main"),

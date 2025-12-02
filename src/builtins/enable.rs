@@ -75,11 +75,10 @@ impl builtins::Command for EnableCommand {
                     if !builtin.disabled {
                         continue;
                     }
-                } else if self.print_list {
-                    if builtin.disabled {
+                } else if self.print_list
+                    && builtin.disabled {
                         continue;
                     }
-                }
 
                 if self.special_only && !builtin.special_builtin {
                     continue;

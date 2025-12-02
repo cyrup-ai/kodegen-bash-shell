@@ -20,8 +20,8 @@ pub fn try_iter_open_fds() -> impl Iterator<Item = (ShellFd, openfiles::OpenFile
 
     if let Ok(fd_dir) = std::fs::read_dir(FD_DIR_PATH) {
         for entry in fd_dir.into_iter().flatten() {
-            if let Ok(filename) = entry.file_name().into_string() {
-                if let Ok(fd_num) = filename.parse::<RawFd>() {
+            if let Ok(filename) = entry.file_name().into_string()
+                && let Ok(fd_num) = filename.parse::<RawFd>() {
                     // SAFETY:
                     // We are trying to open the file descriptor we found listed
                     // in the filesystem, but there's a risk that it's not the same one
@@ -33,7 +33,6 @@ pub fn try_iter_open_fds() -> impl Iterator<Item = (ShellFd, openfiles::OpenFile
                         opened_entries.push((fd_num, file));
                     }
                 }
-            }
         }
     }
 

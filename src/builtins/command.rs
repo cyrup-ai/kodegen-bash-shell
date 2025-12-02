@@ -107,11 +107,10 @@ impl CommandCommand {
                 None
             }
         } else {
-            if let Some(builtin_cmd) = shell.builtins().get(command_name) {
-                if !builtin_cmd.disabled {
+            if let Some(builtin_cmd) = shell.builtins().get(command_name)
+                && !builtin_cmd.disabled {
                     return Some(FoundCommand::Builtin(command_name.to_owned()));
                 }
-            }
 
             if use_default_path {
                 let dirs = sys::fs::get_default_standard_utils_paths();

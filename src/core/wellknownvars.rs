@@ -18,8 +18,8 @@ pub(crate) fn initialize_vars(
     if !do_not_inherit_env {
         for (k, v) in std::env::vars() {
             // See if it's a function exported by an ancestor process.
-            if let Some(func_name) = k.strip_prefix("BASH_FUNC_") {
-                if let Some(func_name) = func_name.strip_suffix("%%") {
+            if let Some(func_name) = k.strip_prefix("BASH_FUNC_")
+                && let Some(func_name) = func_name.strip_suffix("%%") {
                     // Intentionally best-effort; don't fail out of the shell if we can't
                     // parse an incoming function.
                     if shell.define_func_from_str(func_name, v.as_str()).is_ok() {
@@ -28,7 +28,6 @@ pub(crate) fn initialize_vars(
 
                     continue;
                 }
-            }
 
             let mut var = ShellVariable::new(ShellValue::String(v));
             var.export();
@@ -255,15 +254,14 @@ pub(crate) fn initialize_vars(
     shell.env.set_global("HISTCMD", histcmd_var)?;
 
     // HISTFILE (if not already set)
-    if !shell.env.is_set("HISTFILE") {
-        if let Some(home_dir) = shell.home_dir() {
+    if !shell.env.is_set("HISTFILE")
+        && let Some(home_dir) = shell.home_dir() {
             let histfile = home_dir.join(".brush_history");
             shell.env.set_global(
                 "HISTFILE",
                 ShellVariable::new(ShellValue::String(histfile.to_string_lossy().to_string())),
             )?;
         }
-    }
 
     // HOSTNAME
     shell.env.set_global(
@@ -457,15 +455,13 @@ fn get_current_user_gids() -> Vec<u32> {
 
     // If the effective GID is present but not in the first position in the list, then move
     // it there.
-    if let Ok(gid) = sys::users::get_effective_gid() {
-        if let Some(index) = groups.iter().position(|&g| g == gid) {
-            if index > 0 {
+    if let Ok(gid) = sys::users::get_effective_gid()
+        && let Some(index) = groups.iter().position(|&g| g == gid)
+            && index > 0 {
                 // Move it to the front.
                 groups.remove(index);
                 groups.insert(0, gid);
             }
-        }
-    }
 
     groups
 }

@@ -33,13 +33,11 @@ impl builtins::Command for BgCommand {
                     exit_code = ExecutionResult::general_error();
                 }
             }
+        } else if let Some(job) = context.shell.jobs.current_job_mut() {
+            job.move_to_background()?;
         } else {
-            if let Some(job) = context.shell.jobs.current_job_mut() {
-                job.move_to_background()?;
-            } else {
-                writeln!(context.stderr(), "{}: no current job", context.command_name)?;
-                exit_code = ExecutionResult::general_error();
-            }
+            writeln!(context.stderr(), "{}: no current job", context.command_name)?;
+            exit_code = ExecutionResult::general_error();
         }
 
         Ok(exit_code)

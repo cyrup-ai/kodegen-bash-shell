@@ -248,11 +248,10 @@ impl ReadCommand {
             }
 
             // Check for a delimiter that indicates end-of-input.
-            if let Some(delimiter) = delimiter {
-                if ch == delimiter {
+            if let Some(delimiter) = delimiter
+                && ch == delimiter {
                     break ReadTermination::Delimiter;
                 }
-            }
 
             // Ignore other control characters without including them in the input.
             if ch.is_ascii_control() && !ch.is_ascii_whitespace() {
@@ -262,11 +261,10 @@ impl ReadCommand {
             line.push(ch);
 
             // Check to see if we've hit a character limit.
-            if let Some(char_limit) = char_limit {
-                if line.len() >= char_limit {
+            if let Some(char_limit) = char_limit
+                && line.len() >= char_limit {
                     break ReadTermination::Limit;
                 }
-            }
         };
 
         match reason {

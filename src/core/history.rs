@@ -191,11 +191,10 @@ impl History {
                     continue;
                 }
 
-                if write_timestamps {
-                    if let Some(timestamp) = item.timestamp {
+                if write_timestamps
+                    && let Some(timestamp) = item.timestamp {
                         writeln!(file, "#{}", timestamp.timestamp())?;
                     }
-                }
 
                 writeln!(file, "{}", item.command_line)?;
 
@@ -300,21 +299,19 @@ impl Query {
     /// * `item` - The item to check.
     pub fn includes(&self, item: &Item) -> bool {
         // Filter based on not_at_or_before_time.
-        if let Some(not_at_or_before_time) = &self.not_at_or_before_time {
-            if item
+        if let Some(not_at_or_before_time) = &self.not_at_or_before_time
+            && item
                 .timestamp
                 .is_some_and(|ts| ts <= *not_at_or_before_time)
             {
                 return false;
             }
-        }
 
         // Filter based on not_at_or_after_time
-        if let Some(not_at_or_after_time) = &self.not_at_or_after_time {
-            if item.timestamp.is_some_and(|ts| ts >= *not_at_or_after_time) {
+        if let Some(not_at_or_after_time) = &self.not_at_or_after_time
+            && item.timestamp.is_some_and(|ts| ts >= *not_at_or_after_time) {
                 return false;
             }
-        }
 
         // Filter based on not_at_or_before_id
         if self

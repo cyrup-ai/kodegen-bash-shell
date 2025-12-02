@@ -149,10 +149,8 @@ impl builtins::Command for DeclareCommand {
                     if !self.try_display_declaration(&context, declaration, verb)? {
                         result = ExecutionResult::general_error();
                     }
-                } else {
-                    if !self.process_declaration(&mut context, declaration, verb)? {
-                        result = ExecutionResult::general_error();
-                    }
+                } else if !self.process_declaration(&mut context, declaration, verb)? {
+                    result = ExecutionResult::general_error();
                 }
             }
         } else {

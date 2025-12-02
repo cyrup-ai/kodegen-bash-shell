@@ -151,11 +151,10 @@ impl Evaluatable for ast::ArithmeticExpr {
 fn get_var_value<'a>(shell: &'a Shell, name: &str) -> Result<Cow<'a, str>, EvalError> {
     let value = shell.env_var(name).map(|var| var.resolve_value(shell));
 
-    if let Some(value) = value {
-        if value.is_set() {
+    if let Some(value) = value
+        && value.is_set() {
             return Ok(value.to_cow_str(shell).to_string().into());
         }
-    }
 
     if shell.options.treat_unset_variables_as_error {
         return Err(EvalError::ExpandingUnsetVariable(name.into()));

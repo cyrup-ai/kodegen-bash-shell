@@ -590,66 +590,61 @@ impl Shell {
             self.source_if_exists(Path::new("/etc/profile"), &params)
                 .await?;
             if let Some(home_path) = self.home_dir() {
-                if self.options.sh_mode {
-                    self.source_if_exists(home_path.join(".profile").as_path(), &params)
-                        .await?;
-                } else {
-                    if !self
+                // In sh mode, only source .profile
+                // In bash mode, try .bash_profile, then .bash_login, then .profile
+                let sourced = !self.options.sh_mode
+                    && (self
                         .source_if_exists(home_path.join(".bash_profile").as_path(), &params)
                         .await?
-                    {
-                        if !self
+                        || self
                             .source_if_exists(home_path.join(".bash_login").as_path(), &params)
-                            .await?
-                        {
-                            self.source_if_exists(home_path.join(".profile").as_path(), &params)
-                                .await?;
-                        }
-                    }
+                            .await?);
+
+                if !sourced {
+                    self.source_if_exists(home_path.join(".profile").as_path(), &params)
+                        .await?;
+                }
+            }
+        } else if self.options.interactive {
+            // --norc means skip this. Also skip in sh mode.
+            if skip_rc || self.options.sh_mode {
+                return Ok(());
+            }
+
+            // If an rc file was specified, then source it.
+            if let Some(rc_file) = rc_file {
+                // If an explicit rc file is provided, source it.
+                self.source_if_exists(rc_file, &params).await?;
+            } else {
+                //
+                // Otherwise, for non-login interactive shells, load in this order:
+                //
+                //     /etc/bash.bashrc
+                //     ~/.bashrc
+                //
+                self.source_if_exists(Path::new("/etc/bash.bashrc"), &params)
+                    .await?;
+                if let Some(home_path) = self.home_dir() {
+                    self.source_if_exists(home_path.join(".bashrc").as_path(), &params)
+                        .await?;
+                    self.source_if_exists(home_path.join(".brushrc").as_path(), &params)
+                        .await?;
                 }
             }
         } else {
-            if self.options.interactive {
-                // --norc means skip this. Also skip in sh mode.
-                if skip_rc || self.options.sh_mode {
-                    return Ok(());
-                }
-
-                // If an rc file was specified, then source it.
-                if let Some(rc_file) = rc_file {
-                    // If an explicit rc file is provided, source it.
-                    self.source_if_exists(rc_file, &params).await?;
-                } else {
-                    //
-                    // Otherwise, for non-login interactive shells, load in this order:
-                    //
-                    //     /etc/bash.bashrc
-                    //     ~/.bashrc
-                    //
-                    self.source_if_exists(Path::new("/etc/bash.bashrc"), &params)
-                        .await?;
-                    if let Some(home_path) = self.home_dir() {
-                        self.source_if_exists(home_path.join(".bashrc").as_path(), &params)
-                            .await?;
-                        self.source_if_exists(home_path.join(".brushrc").as_path(), &params)
-                            .await?;
-                    }
-                }
+            let env_var_name = if self.options.sh_mode {
+                "ENV"
             } else {
-                let env_var_name = if self.options.sh_mode {
-                    "ENV"
-                } else {
-                    "BASH_ENV"
-                };
+                "BASH_ENV"
+            };
 
-                if self.env.is_set(env_var_name) {
-                    //
-                    // TODO: look at $ENV/BASH_ENV; source its expansion if that file exists
-                    //
-                    return error::unimp(
-                        "load config from $ENV/BASH_ENV for non-interactive, non-login shell",
-                    );
-                }
+            if self.env.is_set(env_var_name) {
+                //
+                // TODO: look at $ENV/BASH_ENV; source its expansion if that file exists
+                //
+                return error::unimp(
+                    "load config from $ENV/BASH_ENV for non-interactive, non-login shell",
+                );
             }
         }
 
@@ -1117,11 +1112,10 @@ impl Shell {
         name: &str,
         function_def: &Arc<crate::parser::ast::FunctionDefinition>,
     ) -> Result<(), error::Error> {
-        if let Some(max_call_depth) = self.options.max_function_call_depth {
-            if self.function_call_stack.depth() >= max_call_depth {
+        if let Some(max_call_depth) = self.options.max_function_call_depth
+            && self.function_call_stack.depth() >= max_call_depth {
                 return Err(error::ErrorKind::MaxFunctionCallDepthExceeded.into());
             }
-        }
 
         if tracing::enabled!(target: trace_categories::FUNCTIONS, tracing::Level::DEBUG) {
             let depth = self.function_call_stack.depth();
@@ -1140,13 +1134,12 @@ impl Shell {
     pub(crate) fn leave_function(&mut self) -> Result<(), error::Error> {
         self.env.pop_scope(env::EnvironmentScope::Local)?;
 
-        if let Some(exited_call) = self.function_call_stack.pop() {
-            if tracing::enabled!(target: trace_categories::FUNCTIONS, tracing::Level::DEBUG) {
+        if let Some(exited_call) = self.function_call_stack.pop()
+            && tracing::enabled!(target: trace_categories::FUNCTIONS, tracing::Level::DEBUG) {
                 let depth = self.function_call_stack.depth();
                 let prefix = repeated_char_str(' ', depth);
                 tracing::debug!(target: trace_categories::FUNCTIONS, "Exiting func  [depth={depth}]: {prefix}{}", exited_call.function_name);
             }
-        }
 
         Ok(())
     }
@@ -1164,8 +1157,8 @@ impl Shell {
 
     /// Saves history back to any backing storage.
     pub fn save_history(&mut self) -> Result<(), error::Error> {
-        if let Some(history_file_path) = self.history_file_path() {
-            if let Some(history) = &mut self.history {
+        if let Some(history_file_path) = self.history_file_path()
+            && let Some(history) = &mut self.history {
                 // See if there's *any* time format configured. That triggers writing out timestamps.
                 let write_timestamps = self.env.is_set("HISTTIMEFORMAT");
 
@@ -1177,7 +1170,6 @@ impl Shell {
                     write_timestamps,
                 )?;
             }
-        }
 
         Ok(())
     }
@@ -1394,17 +1386,13 @@ impl Shell {
         // See if this is a reference to a file descriptor, in which case the actual
         // /dev/fd* file path for this process may not match with what's in the execution
         // parameters.
-        if let Some(parent) = path_to_open.parent() {
-            if parent == Path::new("/dev/fd") {
-                if let Some(filename) = path_to_open.file_name() {
-                    if let Ok(fd_num) = filename.to_string_lossy().to_string().parse::<ShellFd>() {
-                        if let Some(open_file) = params.try_fd(self, fd_num) {
+        if let Some(parent) = path_to_open.parent()
+            && parent == Path::new("/dev/fd")
+                && let Some(filename) = path_to_open.file_name()
+                    && let Ok(fd_num) = filename.to_string_lossy().to_string().parse::<ShellFd>()
+                        && let Some(open_file) = params.try_fd(self, fd_num) {
                             return open_file.try_clone();
                         }
-                    }
-                }
-            }
-        }
 
         Ok(options.open(path_to_open)?.into())
     }
@@ -1465,11 +1453,10 @@ impl Shell {
     ///
     /// * `s` - The string to shorten.
     pub fn tilde_shorten(&self, s: String) -> String {
-        if let Some(home_dir) = self.home_dir() {
-            if let Some(stripped) = s.strip_prefix(home_dir.to_string_lossy().as_ref()) {
+        if let Some(home_dir) = self.home_dir()
+            && let Some(stripped) = s.strip_prefix(home_dir.to_string_lossy().as_ref()) {
                 return format!("~{stripped}");
             }
-        }
         s
     }
 
@@ -1540,11 +1527,10 @@ impl Shell {
         // If BASH_XTRACEFD is set and refers to a valid file descriptor, use that instead.
         if let Some((_, xtracefd_var)) = self.env.get("BASH_XTRACEFD") {
             let xtracefd_value = xtracefd_var.value().to_cow_str(self);
-            if let Ok(fd) = xtracefd_value.parse::<ShellFd>() {
-                if let Some(file) = self.open_files.try_fd(fd) {
+            if let Ok(fd) = xtracefd_value.parse::<ShellFd>()
+                && let Some(file) = self.open_files.try_fd(fd) {
                     trace_file = Some(file.clone());
                 }
-            }
         }
 
         // If we have a valid trace file, write to it.

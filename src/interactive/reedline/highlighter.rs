@@ -284,14 +284,12 @@ impl<'a> StyledInputLine<'a> {
                     CommandType::Unknown => styles::unknown_command(),
                 }
             }
+        } else if self.shell.is_keyword(w) {
+            styles::keyword()
+        } else if w.starts_with('-') {
+            styles::hyphen_option()
         } else {
-            if self.shell.is_keyword(w) {
-                styles::keyword()
-            } else if w.starts_with('-') {
-                styles::hyphen_option()
-            } else {
-                styles::default()
-            }
+            styles::default()
         }
     }
 
@@ -324,12 +322,10 @@ impl<'a> StyledInputLine<'a> {
             } else {
                 CommandType::NotFound
             }
+        } else if self.shell.find_first_executable_in_path(name).is_some() {
+            CommandType::External
         } else {
-            if self.shell.find_first_executable_in_path(name).is_some() {
-                CommandType::External
-            } else {
-                CommandType::NotFound
-            }
+            CommandType::NotFound
         }
     }
 }

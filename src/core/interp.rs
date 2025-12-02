@@ -368,8 +368,8 @@ impl Execute for ast::Pipeline {
         *shell.last_exit_status_mut() = result.exit_code.into();
 
         // If requested, report timing.
-        if let Some(timed) = &self.timed {
-            if let Some(mut stderr) = params.try_fd(shell, openfiles::OpenFiles::STDERR_FD) {
+        if let Some(timed) = &self.timed
+            && let Some(mut stderr) = params.try_fd(shell, openfiles::OpenFiles::STDERR_FD) {
                 let timing = stopwatch.unwrap().stop()?;
 
                 if timed.is_posix_output() {
@@ -390,7 +390,6 @@ impl Execute for ast::Pipeline {
                     )?;
                 }
             }
-        }
 
         Ok(result)
     }
@@ -879,11 +878,10 @@ impl Execute for ast::ArithmeticForClauseCommand {
         }
 
         loop {
-            if let Some(condition) = &self.condition {
-                if condition.eval(shell, params, true).await? == 0 {
+            if let Some(condition) = &self.condition
+                && condition.eval(shell, params, true).await? == 0 {
                     break;
                 }
-            }
 
             result = self.body.list.execute(shell, params).await?;
             if result.is_return_or_exit() {
@@ -971,34 +969,32 @@ impl ExecuteInPipeline for ast::SimpleCommand {
                         // If we haven't yet seen any arguments, then this must be a proper
                         // scoped assignment. Add it to the list we're accumulating.
                         assignments.push(assignment);
+                    } else if command_takes_assignments {
+                        // This looks like an assignment, and the command being invoked is a
+                        // well-known builtin that takes arguments that need to function like
+                        // assignments (but which are processed by the builtin).
+                        let expanded =
+                            expand_assignment(context.shell, &params, assignment).await?;
+                        args.push(CommandArg::Assignment(expanded));
                     } else {
-                        if command_takes_assignments {
-                            // This looks like an assignment, and the command being invoked is a
-                            // well-known builtin that takes arguments that need to function like
-                            // assignments (but which are processed by the builtin).
-                            let expanded =
-                                expand_assignment(context.shell, &params, assignment).await?;
-                            args.push(CommandArg::Assignment(expanded));
-                        } else {
-                            // This *looks* like an assignment, but it's really a string we should
-                            // fully treat as a regular looking
-                            // argument.
-                            let mut next_args =
-                                expansion::full_expand_and_split_word(context.shell, &params, word)
-                                    .await?
-                                    .into_iter()
-                                    .map(CommandArg::String)
-                                    .collect();
-                            args.append(&mut next_args);
-                        }
+                        // This *looks* like an assignment, but it's really a string we should
+                        // fully treat as a regular looking
+                        // argument.
+                        let mut next_args =
+                            expansion::full_expand_and_split_word(context.shell, &params, word)
+                                .await?
+                                .into_iter()
+                                .map(CommandArg::String)
+                                .collect();
+                        args.append(&mut next_args);
                     }
                 }
                 CommandPrefixOrSuffixItem::Word(arg) => {
                     let mut next_args =
                         expansion::full_expand_and_split_word(context.shell, &params, arg).await?;
 
-                    if args.is_empty() {
-                        if let Some(cmd_name) = next_args.first() {
+                    if args.is_empty()
+                        && let Some(cmd_name) = next_args.first() {
                             if let Some(alias_value) = context.shell.aliases.get(cmd_name.as_str())
                             {
                                 //
@@ -1029,7 +1025,6 @@ impl ExecuteInPipeline for ast::SimpleCommand {
                                 command_takes_assignments = true;
                             }
                         }
-                    }
 
                     let mut next_args = next_args.into_iter().map(CommandArg::String).collect();
                     args.append(&mut next_args);
@@ -1293,8 +1288,7 @@ async fn apply_assignment(
 
     // See if we can find an existing value associated with the variable.
     if let Some((existing_value_scope, existing_value)) = shell.env.get_mut(variable_name.as_str())
-    {
-        if required_scope.is_none() || Some(existing_value_scope) == required_scope {
+        && (required_scope.is_none() || Some(existing_value_scope) == required_scope) {
             if let Some(array_index) = array_index {
                 match new_value {
                     ShellValueLiteral::Scalar(s) => {
@@ -1322,7 +1316,6 @@ async fn apply_assignment(
             // That's it!
             return Ok(());
         }
-    }
 
     // If we fell down here, then we need to add it.
     let new_value = if let Some(array_index) = array_index {

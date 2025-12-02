@@ -58,13 +58,11 @@ impl builtins::Command for CdCommand {
                 target_dir.clone()
             }
         // `cd' without arguments is equivalent to `cd $HOME'
+        } else if let Some(home_var) = context.shell.env_str("HOME") {
+            PathBuf::from(home_var.to_string())
         } else {
-            if let Some(home_var) = context.shell.env_str("HOME") {
-                PathBuf::from(home_var.to_string())
-            } else {
-                writeln!(context.stderr(), "HOME not set")?;
-                return Ok(ExecutionResult::general_error());
-            }
+            writeln!(context.stderr(), "HOME not set")?;
+            return Ok(ExecutionResult::general_error());
         };
 
         if self.use_physical_dir

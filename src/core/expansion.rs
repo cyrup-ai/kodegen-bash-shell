@@ -521,8 +521,8 @@ impl<'a> WordExpander<'a> {
         if self.in_double_quotes {
             // If the word already starts with a double-quote, we need to remove those quotes
             // and expand what's inside with normal (non-double-quote) semantics.
-            if let Some(stripped) = word.strip_prefix('"') {
-                if let Some(inner) = stripped.strip_suffix('"') {
+            if let Some(stripped) = word.strip_prefix('"')
+                && let Some(inner) = stripped.strip_suffix('"') {
                     // Remove the surrounding double-quotes and expand the content normally
                     // This requires us to temporarily clear in_double_quotes so the inner
                     // content gets normal processing.
@@ -536,7 +536,6 @@ impl<'a> WordExpander<'a> {
 
                     return result;
                 }
-            }
             // Not double-quoted - wrap in double-quotes to get double-quote parsing semantics
             let wrapped = std::format!("\"{word}\"");
             self.basic_expand(&wrapped).await
@@ -813,12 +812,11 @@ impl<'a> WordExpander<'a> {
                     .map(|piece| piece.make_unsplittable())
                     .collect();
 
-                if i == 0 {
-                    if let Some(WordField(last_pieces)) = fields.last_mut() {
+                if i == 0
+                    && let Some(WordField(last_pieces)) = fields.last_mut() {
                         last_pieces.append(&mut next_pieces);
                         continue;
                     }
-                }
 
                 fields.push(WordField(next_pieces));
             }
@@ -1573,11 +1571,10 @@ impl<'a> WordExpander<'a> {
                 Expansion::from(std::process::id().to_string())
             }
             crate::parser::word::SpecialParameter::LastBackgroundProcessId => {
-                if let Some(job) = self.shell.jobs.current_job() {
-                    if let Some(pid) = job.representative_pid() {
+                if let Some(job) = self.shell.jobs.current_job()
+                    && let Some(pid) = job.representative_pid() {
                         return Expansion::from(pid.to_string());
                     }
-                }
                 Expansion::from(String::new())
             }
             crate::parser::word::SpecialParameter::ShellName => Expansion::from(

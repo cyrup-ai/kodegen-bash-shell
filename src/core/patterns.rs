@@ -161,11 +161,10 @@ impl Pattern {
         }) {
             let concatenated: String = self.pieces.iter().map(|piece| piece.as_str()).collect();
 
-            if let Some(filter) = path_filter {
-                if !filter(Path::new(&concatenated)) {
+            if let Some(filter) = path_filter
+                && !filter(Path::new(&concatenated)) {
                     return Ok(vec![]);
                 }
-            }
 
             return Ok(vec![concatenated]);
         }
@@ -279,11 +278,10 @@ impl Pattern {
         let results: Vec<_> = paths_so_far
             .into_iter()
             .filter_map(|path| {
-                if let Some(filter) = path_filter {
-                    if !filter(path.as_path()) {
+                if let Some(filter) = path_filter
+                    && !filter(path.as_path()) {
                         return None;
                     }
-                }
 
                 let path_str = path.to_string_lossy();
                 let mut path_ref = path_str.as_ref();

@@ -59,13 +59,12 @@ impl ReedlineCompleter {
 
             if insertion_index + delete_count <= line.len() {
                 let removed = &line[insertion_index..insertion_index + delete_count];
-                if let Some(last_sep_index) = removed.rfind(std::path::MAIN_SEPARATOR) {
-                    if candidate.starts_with(removed) {
+                if let Some(last_sep_index) = removed.rfind(std::path::MAIN_SEPARATOR)
+                    && candidate.starts_with(removed) {
                         candidate = candidate.split_off(last_sep_index + 1);
                         insertion_index += last_sep_index + 1;
                         delete_count -= last_sep_index + 1;
                     }
-                }
             }
         }
 

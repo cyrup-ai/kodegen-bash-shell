@@ -288,8 +288,8 @@ impl Spec {
         }
 
         // Apply filter pattern, if present. Anything the filter selects gets removed.
-        if let Some(filter_pattern) = &self.filter_pattern {
-            if !filter_pattern.is_empty() {
+        if let Some(filter_pattern) = &self.filter_pattern
+            && !filter_pattern.is_empty() {
                 let mut updated = IndexSet::new();
 
                 for candidate in candidates {
@@ -307,7 +307,6 @@ impl Spec {
 
                 candidates = updated;
             }
-        }
 
         // Add prefix and/or suffix, if present.
         if self.prefix.is_some() || self.suffix.is_some() {
@@ -1027,26 +1026,22 @@ impl Config {
             } else {
                 if let Some(spec) = shell.completion_config.commands.get(command_name) {
                     found_spec = Some(spec);
-                } else if let Some(file_name) = PathBuf::from(command_name).file_name() {
-                    if let Some(spec) = shell
+                } else if let Some(file_name) = PathBuf::from(command_name).file_name()
+                    && let Some(spec) = shell
                         .completion_config
                         .commands
                         .get(&file_name.to_string_lossy().to_string())
                     {
                         found_spec = Some(spec);
                     }
-                }
 
-                if found_spec.is_none() {
-                    if let Some(spec) = &self.default {
+                if found_spec.is_none()
+                    && let Some(spec) = &self.default {
                         found_spec = Some(spec);
                     }
-                }
             }
-        } else {
-            if let Some(spec) = &self.empty_line {
-                found_spec = Some(spec);
-            }
+        } else if let Some(spec) = &self.empty_line {
+            found_spec = Some(spec);
         }
 
         // Try to generate completions.

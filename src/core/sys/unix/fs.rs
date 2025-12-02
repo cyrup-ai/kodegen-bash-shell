@@ -96,11 +96,10 @@ pub fn get_default_standard_utils_paths() -> Vec<String> {
     // finds an empty string, then we'll fall back to hard-coded defaults.
     //
 
-    if let Ok(Some(cs_path)) = confstr_cs_path() {
-        if !cs_path.is_empty() {
+    if let Ok(Some(cs_path)) = confstr_cs_path()
+        && !cs_path.is_empty() {
             return cs_path.split(':').map(|s| s.to_string()).collect();
         }
-    }
 
     DEFAULT_STANDARD_UTILS_PATHS
         .iter()

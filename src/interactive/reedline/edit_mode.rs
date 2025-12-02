@@ -89,8 +89,8 @@ impl interfaces::KeyBindings for UpdatableBindings {
 
         for (key_combo, event) in self.bindings.get_keybindings() {
             let action = translate_reedline_event_to_action(event);
-            if let Some(action) = action {
-                if let Some(key) = translate_reedline_keycode(key_combo.key_code) {
+            if let Some(action) = action
+                && let Some(key) = translate_reedline_keycode(key_combo.key_code) {
                     let mut stroke = KeyStroke::from(key);
 
                     if key_combo.modifier.contains(reedline::KeyModifiers::CONTROL) {
@@ -115,7 +115,6 @@ impl interfaces::KeyBindings for UpdatableBindings {
                     let seq = KeySequence::from(stroke);
                     results.insert(seq, action);
                 }
-            }
         }
 
         results

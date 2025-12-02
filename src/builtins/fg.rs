@@ -44,27 +44,25 @@ impl builtins::Command for FgCommand {
                 )?;
                 Ok(ExecutionResult::general_error())
             }
-        } else {
-            if let Some(job) = context.shell.jobs.current_job_mut() {
-                job.move_to_foreground()?;
-                writeln!(stderr, "{}", job.command_line)?;
+        } else if let Some(job) = context.shell.jobs.current_job_mut() {
+            job.move_to_foreground()?;
+            writeln!(stderr, "{}", job.command_line)?;
 
-                let result = job.wait().await?;
-                if context.shell.options.interactive {
-                    sys::terminal::move_self_to_foreground()?;
-                }
-
-                if matches!(job.state, jobs::JobState::Stopped) {
-                    // N.B. We use the '\r' to overwrite any ^Z output.
-                    let formatted = job.to_string();
-                    writeln!(context.stderr(), "\r{formatted}")?;
-                }
-
-                Ok(result)
-            } else {
-                writeln!(stderr, "{}: no current job", context.command_name)?;
-                Ok(ExecutionResult::general_error())
+            let result = job.wait().await?;
+            if context.shell.options.interactive {
+                sys::terminal::move_self_to_foreground()?;
             }
+
+            if matches!(job.state, jobs::JobState::Stopped) {
+                // N.B. We use the '\r' to overwrite any ^Z output.
+                let formatted = job.to_string();
+                writeln!(context.stderr(), "\r{formatted}")?;
+            }
+
+            Ok(result)
+        } else {
+            writeln!(stderr, "{}: no current job", context.command_name)?;
+            Ok(ExecutionResult::general_error())
         }
     }
 }

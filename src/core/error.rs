@@ -11,7 +11,7 @@ use super::{Shell, ShellFd, results, sys};
 pub struct Error {
     /// The kind of error.
     #[source]
-    kind: ErrorKind,
+    kind: Box<ErrorKind>,
 
     /// Whether or not the error should be considered a "fatal" error that would
     /// result in abnormal exit of a non-interactive shell.
@@ -301,7 +301,7 @@ impl From<&ErrorKind> for results::ExecutionExitCode {
 
 impl From<&Error> for results::ExecutionExitCode {
     fn from(error: &Error) -> Self {
-        Self::from(&error.kind)
+        Self::from(error.kind.as_ref())
     }
 }
 
@@ -311,7 +311,7 @@ where
 {
     fn from(convertible_to_kind: T) -> Self {
         Self {
-            kind: convertible_to_kind.into(),
+            kind: Box::new(convertible_to_kind.into()),
             fatal: false,
         }
     }
@@ -331,7 +331,7 @@ impl Error {
     }
 
     /// Returns a reference to the error kind.
-    pub const fn kind(&self) -> &ErrorKind {
+    pub fn kind(&self) -> &ErrorKind {
         &self.kind
     }
 

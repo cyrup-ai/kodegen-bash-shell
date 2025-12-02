@@ -162,14 +162,13 @@ impl TypeCommand {
             }
 
             // Check for functions.
-            if !self.suppress_func_lookup {
-                if let Some(registration) = shell.funcs().get(name) {
+            if !self.suppress_func_lookup
+                && let Some(registration) = shell.funcs().get(name) {
                     types.push(ResolvedType::Function(registration.definition()));
                     if !self.all_locations {
                         return types;
                     }
                 }
-            }
 
             // Check for builtins.
             if shell.builtins().get(name).is_some_and(|b| !b.disabled) {

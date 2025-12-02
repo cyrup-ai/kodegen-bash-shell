@@ -288,16 +288,14 @@ impl CompleteCommand {
             } else {
                 context.shell.completion_config.clear();
             }
+        } else if let Some(target_spec) = target_spec {
+            let mut new_spec = Some(
+                self.common_args
+                    .create_spec(context.shell.options.extended_globbing),
+            );
+            std::mem::swap(&mut new_spec, target_spec);
         } else {
-            if let Some(target_spec) = target_spec {
-                let mut new_spec = Some(
-                    self.common_args
-                        .create_spec(context.shell.options.extended_globbing),
-                );
-                std::mem::swap(&mut new_spec, target_spec);
-            } else {
-                return error::unimp("set unspecified spec");
-            }
+            return error::unimp("set unspecified spec");
         }
 
         Ok(())
