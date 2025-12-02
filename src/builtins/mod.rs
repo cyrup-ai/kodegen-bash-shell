@@ -114,6 +114,13 @@ mod unimp;
 pub use builder::ShellBuilderExt;
 pub use factory::{BuiltinSet, default_builtins};
 
+// Re-export builtin infrastructure from core::builtins for convenience
+// This allows `use crate::builtins::{Command, builtin}` to work
+pub use crate::core::builtins::{
+    builtin, decl_builtin, raw_arg_builtin, simple_builtin, Command, ContentType,
+    DeclarationCommand, Registration, SimpleCommand,
+};
+
 /// Macro to define a struct that represents a shell built-in flag argument that can be
 /// enabled or disabled by specifying an option with a leading '+' or '-' character.
 ///

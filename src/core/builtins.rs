@@ -273,19 +273,21 @@ fn brush_help_styles() -> clap::builder::Styles {
 /// * the remain iterator `args` with `--` and the rest arguments if they present otherwise None
 ///
 /// # Examples
-/// ```
-///    use clap::{builder::styling, Parser};
-///    #[derive(Parser)]
-///    struct CommandLineArgs {
-///       #[clap(allow_hyphen_values = true, num_args=1..)]
-///       script_args: Vec<String>,
-///    }
+/// ```no_run
+/// use clap::Parser;
+/// use kodegen_bash_shell::core::builtins::parse_known;
 ///
-///    let (mut parsed_args, raw_args) =
-///        crate::core::parse_known::<CommandLineArgs, _>(std::env::args());
-///    if raw_args.is_some() {
-///        parsed_args.script_args = raw_args.unwrap().collect();
-///    }
+/// #[derive(Parser)]
+/// struct CommandLineArgs {
+///    #[clap(allow_hyphen_values = true, num_args=1..)]
+///    script_args: Vec<String>,
+/// }
+///
+/// let (mut parsed_args, raw_args) =
+///     parse_known::<CommandLineArgs, _>(std::env::args());
+/// if let Some(args) = raw_args {
+///     parsed_args.script_args = args.collect();
+/// }
 /// ```
 pub fn parse_known<T: clap::Parser, S>(
     args: impl IntoIterator<Item = S>,

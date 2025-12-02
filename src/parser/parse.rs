@@ -1049,7 +1049,7 @@ fn parse_array_assignment(
 mod tests {
 
     use super::*;
-    use super::tokenizer::tokenize_str;
+    use crate::parser::tokenize_str;
     use anyhow::Result;
     use insta::assert_ron_snapshot;
 

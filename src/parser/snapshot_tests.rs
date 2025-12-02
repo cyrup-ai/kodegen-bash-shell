@@ -90,14 +90,14 @@ struct ParseSummary<'a> {
 
 #[cfg_attr(test, derive(serde::Serialize))]
 enum ParseResult {
-    Success(crate::ast::Program),
+    Success(super::ast::Program),
     Failure(String),
 }
 
 fn parse_script_content(s: &str) -> ParseSummary<'_> {
     let input_lines: Vec<_> = s.lines().collect();
 
-    let tokens = match crate::tokenize_str_with_options(s, &crate::TokenizerOptions::default()) {
+    let tokens = match super::tokenize_str_with_options(s, &super::TokenizerOptions::default()) {
         Ok(tokens) => tokens,
         Err(err) => {
             return ParseSummary {
@@ -107,10 +107,10 @@ fn parse_script_content(s: &str) -> ParseSummary<'_> {
         }
     };
 
-    let parsed_program = match crate::parse_tokens(
+    let parsed_program = match super::parse_tokens(
         &tokens,
-        &crate::ParserOptions::default(),
-        &crate::SourceInfo::default(),
+        &super::ParserOptions::default(),
+        &super::SourceInfo::default(),
     ) {
         Ok(parsed_program) => parsed_program,
         Err(err) => {
