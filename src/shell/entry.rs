@@ -303,6 +303,7 @@ async fn instantiate_shell(
             no_rc: args.no_rc,
             rc_file: args.rc_file.clone(),
             do_not_inherit_env: args.do_not_inherit_env,
+            working_dir: None,
             fds: Some(fds),
             posix: args.posix || args.sh_mode,
             print_commands_and_arguments: args.print_commands_and_arguments,

@@ -274,6 +274,14 @@ pub struct CreateOptions {
     /// Registered builtins. Defaults to full bash-compatible builtins.
     #[builder(field)]
     pub builtins: HashMap<String, builtins::Registration>,
+    /// Optional override for initial working directory.
+    /// If None, defaults to std::env::current_dir().
+    /// When provided, the shell will start in this directory instead of
+    /// inheriting the process's current directory.
+    ///
+    /// This is critical for HTTP-based MCP tools where the shell should
+    /// start in the CLIENT's working directory, not the SERVER's.
+    pub working_dir: Option<PathBuf>,
     /// Disallow overwriting regular files via output redirection.
     #[builder(default)]
     pub disallow_overwriting_regular_files_via_output_redirection: bool,
@@ -359,8 +367,14 @@ impl Shell {
         let mut shell = Self {
             traps: traps::TrapHandlerConfig::default(),
             open_files: openfiles::OpenFiles::new(),
-            // Populate working directory from the host environment.
-            working_dir: std::env::current_dir()?,
+            // Use explicitly provided directory (from client context) or fallback to process cwd
+            working_dir: if let Some(ref dir) = options.working_dir {
+                // Use explicitly provided directory (from client context)
+                dir.clone()
+            } else {
+                // Fallback to process's current directory for backward compatibility
+                std::env::current_dir()?
+            },
             env: env::ShellEnvironment::new(),
             funcs: functions::FunctionEnv::default(),
             options: RuntimeOptions::defaults_from(&options),

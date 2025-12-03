@@ -1,6 +1,6 @@
 [package]
 name = "kodegen_bash_shell"
-version = "0.5.0"
+version = "0.5.1"
 edition = "2024"
 description = "Embeddable POSIX/bash shell with cancellation support. Fork of brush-shell."
 license = "Apache-2.0 OR MIT"
@@ -189,7 +189,7 @@ tokio = { version = "1.48.0", features = ["io-util", "macros", "rt", "sync"] }
 
 [target.'cfg(any(unix, windows))'.dependencies]
 hostname = "0.4.2"
-tokio = { version = "1.48.0", features = [
+tokio = { version = "1.48", features = [
     "io-util",
     "macros",
     "process",
