@@ -6,6 +6,14 @@
 #![allow(clippy::unused_async)]
 #![allow(clippy::unused_self)]
 
+// Re-export modules from crate::core for use by stub implementations
+pub use crate::core::error;
+pub use crate::core::interfaces;
+pub use crate::core::openfiles;
+pub use crate::core::sys;
+pub use crate::core::traps;
+pub use crate::ShellFd;
+
 pub mod commands;
 pub mod fd;
 pub mod fs;

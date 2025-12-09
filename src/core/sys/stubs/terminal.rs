@@ -1,6 +1,7 @@
 //! Terminal utilities.
 
-use super::{error, sys, terminal};
+use super::{error, sys};
+use crate::core::terminal::Settings;
 
 /// Terminal configuration.
 #[derive(Clone, Debug)]
@@ -33,7 +34,7 @@ impl Config {
     /// # Arguments
     ///
     /// * `_settings` - The high-level terminal settings to apply to this configuration.
-    pub fn update(&mut self, _settings: &terminal::Settings) {}
+    pub fn update(&mut self, _settings: &Settings) {}
 }
 
 /// Get the process ID of this process's parent.

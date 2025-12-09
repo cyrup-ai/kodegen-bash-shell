@@ -1,6 +1,6 @@
 #![allow(clippy::missing_const_for_fn)]
 
-use super::error;
+use crate::core::error;
 use std::path::PathBuf;
 
 //
