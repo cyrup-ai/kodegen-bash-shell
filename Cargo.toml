@@ -1,6 +1,6 @@
 [package]
 name = "kodegen_bash_shell"
-version = "0.10.6"
+version = "0.10.7"
 edition = "2024"
 description = "Embeddable POSIX/bash shell with cancellation support. Fork of brush-shell."
 license = "Apache-2.0 OR MIT"
